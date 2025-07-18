@@ -40,30 +40,25 @@ class _BookStoreScreenState extends State<BookStoreScreen> {
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final NumberFormat _currencyFormat = NumberFormat.currency(locale: 'th_TH', symbol: '฿');
-  String? _editingDocId;
 
-  Future<void> _saveBook() async {
+  Future<void> _addBook() async {
     try {
-      final bookData = {
+      await _firestore.collection('books').add({
         'title': _titleController.text,
         'volume': int.tryParse(_volumeController.text) ?? 1,
         'purchaseLocation': _locationController.text,
         'price': double.tryParse(_priceController.text) ?? 0.0,
         'timestamp': FieldValue.serverTimestamp(),
-      };
+      });
 
-      if (_editingDocId != null) {
-        await _firestore.collection('books').doc(_editingDocId).update(bookData);
-      } else {
-        await _firestore.collection('books').add(bookData);
-      }
-
-      _clearForm();
-      _editingDocId = null;
+      _titleController.clear();
+      _volumeController.clear();
+      _locationController.clear();
+      _priceController.clear();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_editingDocId != null ? 'อัปเดตหนังสือเรียบร้อยแล้ว!' : 'บันทึกหนังสือเรียบร้อยแล้ว!'),
+          content: const Text('บันทึกหนังสือเรียบร้อยแล้ว!'),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
         ),
@@ -76,30 +71,6 @@ class _BookStoreScreenState extends State<BookStoreScreen> {
         ),
       );
     }
-  }
-
-  void _clearForm() {
-    _titleController.clear();
-    _volumeController.clear();
-    _locationController.clear();
-    _priceController.clear();
-  }
-
-  void _editBook(DocumentSnapshot document) {
-    final data = document.data() as Map<String, dynamic>;
-    setState(() {
-      _editingDocId = document.id;
-      _titleController.text = data['title'];
-      _volumeController.text = data['volume'].toString();
-      _locationController.text = data['purchaseLocation'];
-      _priceController.text = data['price'].toString();
-    });
-    // Scroll to the form
-    Scrollable.ensureVisible(
-      context,
-      alignment: 0,
-      duration: const Duration(milliseconds: 300),
-    );
   }
 
   Future<void> _deleteBook(String docId) async {
@@ -151,15 +122,6 @@ class _BookStoreScreenState extends State<BookStoreScreen> {
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
-                    Text(
-                      _editingDocId != null ? 'แก้ไขหนังสือ' : 'เพิ่มหนังสือใหม่',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
                     TextField(
                       controller: _titleController,
                       decoration: const InputDecoration(
@@ -198,51 +160,15 @@ class _BookStoreScreenState extends State<BookStoreScreen> {
                       keyboardType: TextInputType.number,
                     ),
                     const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: _saveBook,
-                            style: ElevatedButton.styleFrom(
-                              minimumSize: const Size(double.infinity, 50),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              backgroundColor: _editingDocId != null 
-                                  ? Colors.orange 
-                                  : Colors.blue,
-                            ),
-                            child: Text(
-                              _editingDocId != null ? 'อัปเดตข้อมูล' : 'บันทึกข้อมูล',
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                          ),
+                    ElevatedButton(
+                      onPressed: _addBook,
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 50),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        if (_editingDocId != null) ...[
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () {
-                                _clearForm();
-                                setState(() {
-                                  _editingDocId = null;
-                                });
-                              },
-                              style: ElevatedButton.styleFrom(
-                                minimumSize: const Size(double.infinity, 50),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                backgroundColor: Colors.grey,
-                              ),
-                              child: const Text(
-                                'ยกเลิก',
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
+                      ),
+                      child: const Text('บันทึกข้อมูล'),
                     ),
                   ],
                 ),
@@ -326,18 +252,9 @@ class _BookStoreScreenState extends State<BookStoreScreen> {
                                 ),
                             ],
                           ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit, color: Colors.blue),
-                                onPressed: () => _editBook(document),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.red),
-                                onPressed: () => _deleteBook(document.id),
-                              ),
-                            ],
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () => _deleteBook(document.id),
                           ),
                         ),
                       );
