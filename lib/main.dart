@@ -132,7 +132,7 @@ class _BookStoreScreenState extends State<BookStoreScreen> {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [Colors.blue.shade700, Colors.lightBlue.shade400],
-              begin: Alignment.topLeft,
+              begin: Alignment.topLeft, 
               end: Alignment.bottomRight,
             ),
           ),
